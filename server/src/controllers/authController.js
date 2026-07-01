@@ -1,5 +1,5 @@
 import User from "../models/userModel.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 
 export async function register(req, res) {
@@ -18,7 +18,7 @@ export async function register(req, res) {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = new User({ name, email, hashedPassword });
+        const user = new User({ name, email, password: hashedPassword });
 
         await user.save();
 
@@ -41,7 +41,7 @@ export async function login(req, res) {
             return res.status(401).json({ success: false, message: "All fields are required" })
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select('+password');
 
         if (!user) {
             return res.status(401).json({ success: false, message: "User not found" })

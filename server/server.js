@@ -23,10 +23,6 @@ app.use("/", (req, res) => {
   res.status(200).json("Hello MERN Auth API is working");
 });
 
-app.use("/*", (req, res) => {
-  res.status(404).json("Invalid Route");
-})
-
 app.listen(PORT, () => {
   console.log(`server is listening on http://localhost:${PORT}`);
 });

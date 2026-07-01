@@ -7,7 +7,7 @@ const connectDB = async () => {
   try {
     console.log("Node DNS servers:", dns.getServers());
 
-    await mongoose.connect(`${process.env.MONGODB_URI}/mern-auth`);
+    await mongoose.connect(process.env.MONGODB_URI, { dbName: "mern-auth" });
 
     console.log("MongoDB connected successfully");
   } catch (error) {
