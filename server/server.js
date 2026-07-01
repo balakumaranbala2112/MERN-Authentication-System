@@ -7,6 +7,7 @@ import connectDB from "./src/config/mongodb.js";
 /* Routes */
 
 import authRoutes from "./src/routes/authRoutes.js"
+import userRouter from "./src/routes/userRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -18,9 +19,14 @@ app.use(cors({ credentials: true }));
 
 /* API Endpoints */
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/user", userRouter);
 
-app.use("/", (req, res) => {
+app.get("/", (req, res) => {
   res.status(200).json("Hello MERN Auth API is working");
+});
+
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "API Route Not Found" });
 });
 
 app.listen(PORT, () => {

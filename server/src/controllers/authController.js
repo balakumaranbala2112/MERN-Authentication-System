@@ -86,3 +86,168 @@ export async function logout(req, res) {
         return res.status(500).json({ success: false, message: "Internal server error" })
     }
 }
+
+export async function sendVerifyOtp(req, res) {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "userId is required" })
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: "User not found" })
+        }
+
+        if (user.isAccountVerified) {
+            return res.status(400).json({ success: false, message: "Account already verified" });
+        }
+
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+
+        user.verifyOtp = otp;
+        user.verifyOtpExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+
+        await user.save();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "Verify Your Email",
+            text: `Hello ${user.name}, your OTP is ${otp}. It will expire in 24 hours.`,
+            html: `<p>Hello ${user.name},</p><p>Your OTP is ${otp}. It will expire in 24 hours.</p>`
+        }
+
+        await transporter.sendMail(mailOptions);
+
+        return res.status(200).json({ success: true, message: "OTP sent successfully" });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
+
+export async function verifyEmail(req, res) {
+    try {
+        const { userId, otp } = req.body;
+
+        if (!userId || !otp) {
+            return res.status(401).json({ success: false, message: "userId and otp are required" })
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: "User not found" })
+        }
+
+        if (user.isAccountVerified) {
+            return res.status(400).json({ success: false, message: "Account already verified" });
+        }
+
+        if (user.verifyOtp !== otp) {
+            return res.status(400).json({ success: false, message: "Invalid OTP" })
+        }
+
+        if (user.verifyOtpExpiresAt < Date.now()) {
+            return res.status(400).json({ success: false, message: "OTP expired" })
+        }
+
+        user.isAccountVerified = true;
+        user.verifyOtp = "";
+        user.verifyOtpExpiresAt = 0;
+
+        await user.save();
+
+        return res.status(200).json({ success: true, message: "Email verified successfully" });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
+
+export async function isAuthenticated(req, res) {
+    try {
+        return res.status(200).json({ success: true, message: "User is authenticated" });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
+
+export async function sendResetOtp(req, res) {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(401).json({ success: false, message: "email is required" })
+        }
+
+        const user = await User.findOne({ email })
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: "User not found" })
+        }
+
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+
+        user.resetOtp = otp;
+        user.resetOtpExpiresAt = Date.now() + 15 * 60 * 1000;
+
+        await user.save();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "Password Reset OTP",
+            text: `Hello ${user.name}, your password reset OTP is ${otp}. It will expire in 15 minutes.`,
+            html: `<p>Hello ${user.name},</p><p>Your password reset OTP is ${otp}. It will expire in 15 minutes.</p>`
+        }
+
+        await transporter.sendMail(mailOptions);
+
+        return res.status(200).json({ success: true, message: "OTP sent successfully" });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
+
+export async function resetPassword(req, res) {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return res.status(401).json({ success: false, message: "email, otp, newPassword are required" })
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: "User not found" })
+        }
+
+        if (user.resetOtp === "" || user.resetOtp !== otp) {
+            return res.status(401).json({ success: false, message: "OTP is wrong" })
+        }
+
+        if (user.resetOtpExpiresAt < Date.now()) {
+            return res.status(401).json({ success: false, message: "OTP is expired" })
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        user.password = hashedPassword;
+        user.resetOtp = "";
+        user.resetOtpExpiresAt = 0;
+
+        await user.save();
+
+        return res.status(200).json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
