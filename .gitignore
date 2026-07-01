@@ -1,0 +1,23 @@
+# Node.js dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+server/.env
+client/.env
+
+# Logs
+*.log
+logs/
+server/logs/
+
+# Test coverage
+coverage/
+
+# macOS system files
+.DS_Store
