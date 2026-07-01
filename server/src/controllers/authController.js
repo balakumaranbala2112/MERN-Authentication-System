@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
+import transporter from "../config/nodemailer.js";
 
 export async function register(req, res) {
     try {
@@ -25,6 +26,16 @@ export async function register(req, res) {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" })
 
         res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" ? true : false, sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "Welcome to Our Platform",
+            text: `Hello ${user.name}, welcome to our platform! Your account has been created successfully.`,
+            html: `<p>Hello ${user.name},</p><p>Welcome to our platform! Your account has been created successfully.</p>`
+        }
+
+        await transporter.sendMail(mailOptions);
 
         return res.status(201).json({ success: true, message: "User registered successfully", user });
     } catch (error) {
