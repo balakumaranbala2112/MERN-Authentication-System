@@ -96,7 +96,9 @@ export async function sendVerifyOtp(req, res) {
             return res.status(401).json({ success: false, message: "userId is required" })
         }
 
+        console.time("DB Lookup");
         const user = await User.findById(userId);
+        console.timeEnd("DB Lookup");
 
         if (!user) {
             return res.status(401).json({ success: false, message: "User not found" })
@@ -120,7 +122,9 @@ export async function sendVerifyOtp(req, res) {
             html: EMAIL_VERIFY_TEMPLATE.replace("{{otp}}", otp).replace("{{email}}", user.email)
         }
 
-        await transporter.sendMail(mailOptions);
+        console.time("Send Email");
+        transporter.sendMail(mailOptions);
+        console.timeEnd("Send Email");
 
         return res.status(200).json({ success: true, message: "OTP sent successfully" });
     } catch (error) {

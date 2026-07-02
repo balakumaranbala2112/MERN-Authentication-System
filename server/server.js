@@ -1,36 +1,48 @@
-import express from "express";
-import cors from "cors";
+import app from "./src/app.js";
 import "dotenv/config";
-import cookieParser from "cookie-parser";
-import connectDB from "./src/config/mongodb.js";
+import { connectDB, disconnect } from "./src/config/mongodb.js";
+import config from "./src/config/env.js";
 
-/* Routes */
+let server;
 
-import authRoutes from "./src/routes/authRoutes.js"
-import userRouter from "./src/routes/userRoutes.js";
+const startServer = async () => {
+  try {
+    await connectDB();
 
-const app = express();
-const PORT = process.env.PORT || 4000;
-connectDB();
+    server = app.listen(config.port, () => {
+      console.log(`Server is listening on http://localhost:${config.port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
 
-const allowedOrigins = ["http://localhost:5173"];
+const gracefulShutdown = async (signal) => {
+  console.log(`${signal} received. Closing server...`);
 
-app.use(express.json());
-app.use(cookieParser());
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+  if (server) {
+    server.close(async () => {
+      await disconnectDB();
+      process.exit(0);
+    });
+  } else {
+    await disconnectDB();
+    process.exit(0);
+  }
+};
 
-/* API Endpoints */
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/user", userRouter);
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
-app.get("/", (req, res) => {
-  res.status(200).json("Hello MERN Auth API is working");
+process.on("unhandledRejection", (error) => {
+  console.error("Unhandled Promise Rejection:", error);
+  gracefulShutdown("unhandledRejection");
 });
 
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: "API Route Not Found" });
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  process.exit(1);
 });
 
-app.listen(PORT, () => {
-  console.log(`server is listening on http://localhost:${PORT}`);
-});
+startServer();
