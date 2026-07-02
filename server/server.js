@@ -1,12 +1,12 @@
 import app from "./src/app.js";
-import "dotenv/config";
-import { connectDB, disconnect } from "./src/config/mongodb.js";
 import config from "./src/config/env.js";
+import { connectDB, disconnectDB } from "./src/config/mongodb.js";
 
-let server;
+let server = null;
 
 const startServer = async () => {
   try {
+    // Start accepting API requests only after MongoDB is connected.
     await connectDB();
 
     server = app.listen(config.port, () => {
@@ -21,14 +21,27 @@ const startServer = async () => {
 const gracefulShutdown = async (signal) => {
   console.log(`${signal} received. Closing server...`);
 
-  if (server) {
-    server.close(async () => {
-      await disconnectDB();
-      process.exit(0);
-    });
-  } else {
+  try {
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            return reject(error);
+          }
+
+          resolve();
+        });
+      });
+
+      console.log("HTTP server closed");
+    }
+
     await disconnectDB();
+
     process.exit(0);
+  } catch (error) {
+    console.error("Graceful shutdown failed:", error.message);
+    process.exit(1);
   }
 };
 

@@ -14,12 +14,12 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin || config.clientOrigins.includes(origin)) {
+    origin(requestOrigin, callback) {
+      if (!requestOrigin || config.clientOrigins.includes(requestOrigin)) {
         return callback(null, true);
       }
 
-      return callback(new error("Not allowed by CORS"));
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
