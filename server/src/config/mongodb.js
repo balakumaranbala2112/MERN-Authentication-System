@@ -12,8 +12,8 @@ export const connectDB = async () => {
       console.log("Node DNS servers:", dns.getServers());
     }
 
-    await mongoose.connect(config.mongoUri, {
-      dbName: config.mongoDbName,
+    await mongoose.connect(config.mongo.mongoUri, {
+      dbName: config.mongo.mongoDbName,
       serverSelectionTimeoutMS: 10000,
     });
 
